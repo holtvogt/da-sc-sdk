@@ -51,8 +51,8 @@ function entriesToWrite({ value, pointer }) {
   return entries.filter(([, entryValue]) => !isDataEmpty(entryValue));
 }
 
-function referenceText({ key, blockId }) {
-  return textContent(`self://#${key.toLowerCase()}-${blockId}`);
+function referenceText({ key, blockId, type = '' }) {
+  return textContent(`self://${type}#${key.toLowerCase()}-${blockId}`);
 }
 
 // Blocks are numbered in the order they are written, so the same document is
@@ -76,6 +76,16 @@ function primitiveHtml({
   return codec.toHtml({ value, parentValue, options: writer.options });
 }
 
+// The reference carries the semantic type, so the reader decodes the markup
+// without a schema.
+function markupBlockReference({
+  key, html, pointer, writer,
+}) {
+  const blockId = addBlock({ key, innerHtml: `<div><div>${html}</div></div>`, writer });
+  const type = writer.byPointer[pointer].semanticType;
+  return referenceText({ key, blockId, type });
+}
+
 function itemHtml({
   key, item, pointer, writer,
 }) {
@@ -90,7 +100,12 @@ function itemHtml({
     return `<li>${referenceText({ key, blockId })}</li>`;
   }
   const codec = codecOf({ key, pointer, writer });
-  return `<li>${primitiveHtml({ codec, value: item, writer })}</li>`;
+  const html = primitiveHtml({ codec, value: item, writer });
+  if (codec.fromHtml && html) {
+    const reference = markupBlockReference({ key, html, pointer, writer });
+    return `<li>${reference}</li>`;
+  }
+  return `<li>${html}</li>`;
 }
 
 function listHtml({
@@ -173,10 +188,14 @@ function valueCell({
   const html = primitiveHtml({
     codec, value, parentValue, writer,
   });
-  if (codec.blockContent) {
-    return `<div>${html}</div>`;
+  if (!codec.fromHtml) {
+    return `<div><p>${html}</p></div>`;
   }
-  return `<div><p>${html}</p></div>`;
+  if (!html) {
+    return EMPTY_CELL;
+  }
+  const reference = markupBlockReference({ key, html, pointer, writer });
+  return `<div><p>${reference}</p></div>`;
 }
 
 function entryRowsHtml({ value, pointer, writer }) {

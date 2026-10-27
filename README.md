@@ -182,12 +182,7 @@ const { json } = convertHtmlToJson({ html, config: { baseUrl: "https://main--sit
 
 Without `config.baseUrl`, media bus paths stay relative, such as `./media_<hash>.jpg`.
 
-When the schema uses `x-semantic-type: "rich-text"`, pass the engine's model when writing and the schema when reading, so those values are stored as HTML markup instead of escaped text (see [schema-spec.md](docs/schema-spec.md#x-semantic-type)).
-
-```js
-const { html } = convertJsonToHtml({ json, model: engine.getState().model });
-const { json } = convertHtmlToJson({ html, schema });
-```
+The model also writes values with an `x-semantic-type` in the stored form of their type, which [schema-spec.md](docs/schema-spec.md#x-semantic-type) describes. Reading them back needs only the HTML.
 
 ### Edit (with persistence)
 
