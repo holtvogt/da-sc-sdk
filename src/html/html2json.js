@@ -117,18 +117,24 @@ export default class HTMLConverter {
     // accepts value cells with or without an element wrapper. See the
     // "EDS-formatted HTML" tests in html2json.test.js for the shapes this
     // must handle.
-    return elementChildren(block).reduce((rdx, row) => {
-      const cols = elementChildren(row);
-      if (cols.length < 2) { return rdx; }
-      const [keyCol, valCol] = cols;
-      const key = textContent(keyCol).trim();
-      if (!key) { return rdx; }
+    return elementChildren(block).reduce((properties, row) => {
+      const cells = elementChildren(row);
+      if (cells.length < 2) {
+        return properties;
+      }
+
+      const [keyCell, valueCell] = cells;
+      const key = textContent(keyCell).trim();
+      if (!key) {
+        return properties;
+      }
+
       const valueNode = childNode({ node, key });
       const codec = codecFor({ node: valueNode, parentNode: node, key });
-      rdx[key] = this.readValue({
-        valCol, key, node: valueNode, codec,
+      properties[key] = this.readValue({
+        valueCell, key, node: valueNode, codec,
       });
-      return rdx;
+      return properties;
     }, {});
   }
 
@@ -137,23 +143,25 @@ export default class HTMLConverter {
   // is the value. Without text, a `src` cell reads as its image, since the
   // writer puts images only in an asset's `src` row.
   readValue({
-    valCol, key, node, codec,
+    valueCell, key, node, codec,
   }) {
     if (codec.fromHtml) {
-      return codec.fromHtml({ nodes: valCol.children });
+      return codec.fromHtml({ nodes: valueCell.children });
     }
 
-    const list = firstListChild(valCol);
-    if (list) { return this.readListValue(list, node?.item); }
+    const list = firstListChild(valueCell);
+    if (list) {
+      return this.readListValue(list, node?.item);
+    }
 
-    const text = textContent(valCol).trim();
+    const text = textContent(valueCell).trim();
     if (text !== '') {
       return this.getTypedValue(text, node);
     }
     if (key !== ASSET_SRC) {
       return '';
     }
-    return imageSource({ node: valCol, baseHref: this.baseHref }) ?? '';
+    return imageSource({ node: valueCell, baseHref: this.baseHref }) ?? '';
   }
 
   // Iterate only `<li>` children. Stray non-`<li>` elements inside the list
@@ -177,21 +185,22 @@ export default class HTMLConverter {
   /**
    * Find and convert a block to its basic JSON data
    * @param {String} searchTerm the block name or variation
-   * @param {Boolean} searchRef if the variation should be used for search
+   * @param {Boolean} byReferenceId if the variation should be used for search
    * @param {Object} [node] the compiled schema node of the block's value
    * @returns {Object|Array} the JSON Object or Array representing the block
    */
-  findAndConvert(searchTerm, searchRef, node) {
-    return this.blocks.reduce((acc, block) => {
+  findAndConvert(searchTerm, byReferenceId, node) {
+    return this.blocks.reduce((lastMatch, block) => {
       // If we are looking for a reference,
       // use the variation, not the block name
-      const idx = searchRef ? 1 : 0;
-      const matches = block.properties.className[idx]?.toLowerCase() === searchTerm.toLowerCase();
+      const classIndex = byReferenceId ? 1 : 0;
+      const matches = block.properties.className[classIndex]?.toLowerCase()
+        === searchTerm.toLowerCase();
       // Root block has a single class (e.g. "foo"); nested item blocks add a
       // second class for refs (e.g. "foo foo-abcd"). Both match on className[0],
       // so we require no second class to pick the root.
-      const isRootBlock = !searchRef && !block.properties.className[1];
-      if (matches && (searchRef || isRootBlock)) {
+      const isRootBlock = !byReferenceId && !block.properties.className[1];
+      if (matches && (byReferenceId || isRootBlock)) {
         const properties = this.getProperties(block, node);
         // If the block contains only @items, it represents an array
         // Return the array value directly instead of the object wrapper
@@ -201,7 +210,7 @@ export default class HTMLConverter {
         }
         return properties;
       }
-      return acc;
+      return lastMatch;
     }, {});
   }
 
