@@ -11,6 +11,7 @@
  */
 
 import { deepClone } from '../shared/clone.js';
+import { isJsonObject } from '../shared/object.js';
 import { registeredType } from './index.js';
 
 // The type URLs the schema references, as written and in first-use order.
@@ -38,7 +39,7 @@ function freeKey({ defs, base, suffix = 1 }) {
 // Bundles the schema in the JSON Schema sense. Each referenced type is embedded
 // under `$defs` with its `$id`, so validators resolve the `$ref`s without fetching.
 export function bundleSchema({ schema } = {}) {
-  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+  if (!isJsonObject(schema)) {
     return { error: 'Schema must be an object.' };
   }
   const bundled = deepClone(schema);
@@ -48,7 +49,7 @@ export function bundleSchema({ schema } = {}) {
   }
 
   const { $defs } = bundled;
-  const defs = $defs && typeof $defs === 'object' && !Array.isArray($defs) ? $defs : {};
+  const defs = isJsonObject($defs) ? $defs : {};
   for (const ref of refs) {
     const { name, version, schema: definition } = registeredType(ref);
     const embedded = Object.values(defs).some((def) => def?.$id === ref);
