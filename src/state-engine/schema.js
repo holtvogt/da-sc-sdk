@@ -11,7 +11,7 @@
  */
 
 import { deepClone } from '../shared/clone.js';
-import { appendPointer } from '../shared/pointer.js';
+import { DATA_POINTER, appendPointer } from '../shared/pointer.js';
 import { registeredType } from '../types/index.js';
 import {
   externalRefMessage, resolveTypeRef, typeRefIssue, typeRefKeywordsMessage,
@@ -358,7 +358,7 @@ function compileChildren({
 }
 
 function compileNode({
-  key, schema, required = false, labelFallback = '', pointer = '/data', issues,
+  key, schema, required = false, labelFallback = '', pointer = DATA_POINTER, issues,
 }) {
   const { kind, unsupported = {} } = inferKind(schema);
   const label = schema?.title ?? labelFallback ?? key ?? '';
@@ -528,7 +528,7 @@ export function compileSchema(rawSchema) {
     schema: resolved.schema,
     required: false,
     labelFallback: resolved.schema.title ?? 'Data',
-    pointer: '/data',
+    pointer: DATA_POINTER,
     issues,
   });
 
