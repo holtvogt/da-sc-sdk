@@ -13,6 +13,7 @@
 import { deepClone } from '../shared/clone.js';
 import { DATA_POINTER, appendPointer } from '../shared/pointer.js';
 import { registeredType } from '../types/index.js';
+import { isSupportedSemanticType } from '../types/semantic.js';
 import {
   externalRefMessage, resolveTypeRef, typeRefIssue, typeRefKeywordsMessage,
 } from './type-ref.js';
@@ -229,20 +230,6 @@ function getDefaults({ schema = {}, kind }) {
 
 const SUPPORTED_TYPES = new Set([
   'string', 'number', 'integer', 'boolean', 'object', 'array',
-]);
-
-// Recognized `x-semantic-type` values mapped to the JSON type each applies to.
-// A value is surfaced to consumers only when the field's kind matches; any
-// other value (or type mismatch) is dropped so consumers never receive a hint
-// they can't act on.
-export const SEMANTIC_TYPES = Object.freeze({
-  longText: 'long-text',
-  richText: 'rich-text',
-});
-
-const SEMANTIC_KINDS = new Map([
-  [SEMANTIC_TYPES.longText, 'string'],
-  [SEMANTIC_TYPES.richText, 'string'],
 ]);
 
 // Native JSON Schema string `format` values we surface to the UI as date/time
@@ -510,7 +497,9 @@ function compileNode({
   }
 
   // Vendor hint; `enum` and the standard `format` keyword take precedence above.
-  if (SEMANTIC_KINDS.get(schema?.['x-semantic-type']) === kind) {
+  // An unknown hint, or one for another kind, is dropped so consumers never
+  // receive a hint they can't act on.
+  if (isSupportedSemanticType({ semanticType: schema?.['x-semantic-type'], kind })) {
     return { ...base, semanticType: schema['x-semantic-type'] };
   }
 

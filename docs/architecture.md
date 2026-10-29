@@ -38,6 +38,7 @@ da-sc-sdk/
       image/v1.0.0.js   the image definition, identical to schemas/image/v1.0.0.json
       file/v1.0.0.js    the file definition, identical to schemas/file/v1.0.0.json
       asset.js          the rules every asset value follows, such as the form of its src
+      semantic.js       the x-semantic-type values and the JSON type each applies to
       bundle.js         bundleSchema() — embeds the type definitions for other validators
       version.js        latestByName, the newest version of each type
     shared/           helpers every layer may use
